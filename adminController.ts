@@ -1,22 +1,22 @@
-// Controllers administrativos complementares: métricas e renovação de tempo.
-import { Request, Response } from 'express';
-import * as service from '../services/keyService';
-import { lerKey } from '../utils/validacao';
+// Exige "Authorization: Bearer <jwt>" válido com role=admin.
+import { NextFunction, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
-/** GET /api/admin/stats */
-export function stats(_req: Request, res: Response): void {
-  res.json({ ok: true, ...service.estatisticas() });
-}
+export function adminAuth(req: Request, res: Response, next: NextFunction): void {
+  const cabecalho = req.headers.authorization ?? '';
+  const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7).trim() : '';
 
-/** POST /api/admin/key/extend  { key, duration } */
-export function extendKey(req: Request, res: Response): void {
-  const key = lerKey(req.body);
-  const duracao = (req.body as Record<string, unknown> | undefined)?.duration;
-  if (!key) {
-    res.status(400).json({ ok: false, reason: 'bad_request' });
+  if (!token) {
+    res.status(401).json({ ok: false, reason: 'unauthorized' });
     return;
   }
-  const r = service.estender(key, duracao);
-  if (r.ok) res.json({ ok: true, key: r.data });
-  else res.status(r.status).json({ ok: false, reason: r.reason });
+
+  try {
+    const payload = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] });
+    if (typeof payload === 'string' || payload.role !== 'admin') throw new Error('role inválida');
+    next();
+  } catch {
+    res.status(401).json({ ok: false, reason: 'unauthorized' });
+  }
 }
