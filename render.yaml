@@ -1,0 +1,27 @@
+# Blueprint do Render. "New > Blueprint" e aponte para o repositório.
+# ATENÇÃO: disco persistente exige plano pago (starter+). Sem disco, o SQLite é apagado a cada deploy/restart.
+services:
+  - type: web
+    name: ln-aux-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DB_PATH
+        value: /var/data/ln-aux.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_USER
+        sync: false
+      - key: ADMIN_PASS
+        sync: false
+    disk:
+      name: ln-aux-data
+      mountPath: /var/data
+      sizeGB: 1
