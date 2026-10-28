@@ -8,3 +8,4 @@ router.post('/key/validate', validateKey); // valida e ATIVA no primeiro uso
 router.post('/key/status', statusKey);     // heartbeat somente leitura
 
 export default router;
+
