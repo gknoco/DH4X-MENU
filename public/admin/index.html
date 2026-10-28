@@ -1,1 +1,391 @@
-oi
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LN AUX API - Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0F17; --surface: #111827; --card: #1E293B; --border: #2C3B52;
+    --text: #E2E8F0; --muted: #94A3B8; --accent: #38BDF8; --code-bg: #0A0E15;
+    --ok: #34D399; --warn: #FBBF24; --err: #FB7185; --pend: #94A3B8;
+    --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  a { color: var(--accent); }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  h1, h2 { margin: 0; letter-spacing: -.01em; }
+  h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; }
+  .muted { color: var(--muted); }
+
+  input, select, button { font: inherit; color: inherit; }
+  input, select {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; min-width: 0;
+  }
+  input:focus, select:focus { border-color: var(--accent); outline: none; }
+  label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+
+  .btn {
+    cursor: pointer; border: 1px solid var(--border); background: var(--surface); border-radius: 9px;
+    padding: 8px 14px; font-weight: 500; font-size: .88rem;
+  }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #06202E; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.danger { color: var(--err); }
+  .btn.danger:hover { border-color: var(--err); }
+  .btn.small { padding: 5px 10px; font-size: .78rem; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- Login ---------- */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+  #login .card { width: 100%; max-width: 380px; padding: 28px; }
+  #login h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+  #login form { display: grid; gap: 14px; margin-top: 22px; }
+  #login input { width: 100%; }
+
+  /* ---------- App ---------- */
+  header.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0; flex-wrap: wrap; }
+  .top-row h1 { font-size: 1.2rem; font-weight: 800; }
+  .top-actions { display: flex; gap: 8px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 22px; }
+  .metric { padding: 16px 18px; }
+  .metric .n { font-size: 1.9rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .metric .l { color: var(--muted); font-size: .82rem; margin-top: 4px; }
+  .metric.ok .n { color: var(--ok); } .metric.warn .n { color: var(--warn); } .metric.err .n { color: var(--err); }
+  @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+
+  .gen { margin-top: 18px; }
+  .gen-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .gen-row input[type=number] { width: 110px; }
+  #genOut { width: 100%; min-height: 120px; margin-top: 14px; font-family: var(--mono); font-size: .82rem; resize: vertical; }
+  .gen-out-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+  .list { margin: 18px 0 48px; }
+  .list-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .list-head h2 { margin: 0; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filters input { width: 220px; }
+
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: .88rem; vertical-align: middle; }
+  th { color: var(--muted); font-weight: 500; font-size: .8rem; background: var(--surface); }
+  tr:last-child td { border-bottom: none; }
+  td.mono { font-family: var(--mono); font-size: .8rem; }
+  td.hwid { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { padding: 32px; text-align: center; color: var(--muted); }
+
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .76rem; font-weight: 600; }
+  .pill.pending { background: rgba(148,163,184,.15); color: var(--pend); }
+  .pill.active  { background: rgba(52,211,153,.14);  color: var(--ok); }
+  .pill.paused  { background: rgba(251,191,36,.14);  color: var(--warn); }
+  .pill.expired { background: rgba(251,113,133,.14); color: var(--err); }
+
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--card);
+    border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; font-size: .9rem; z-index: 10;
+    box-shadow: 0 6px 24px rgba(0,0,0,.4);
+  }
+  #toast.err { border-color: var(--err); color: var(--err); }
+  .loginErr { color: var(--err); font-size: .85rem; min-height: 1.2em; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login" hidden>
+  <div class="card">
+    <h1>LN AUX API</h1>
+    <p class="muted" style="margin:0">Entre para gerenciar as keys.</p>
+    <form id="loginForm" autocomplete="on">
+      <div><label for="user">Usuário</label><input id="user" name="username" autocomplete="username" required></div>
+      <div><label for="pass">Senha</label><input id="pass" name="password" type="password" autocomplete="current-password" required></div>
+      <div class="loginErr" id="loginErr" role="alert"></div>
+      <button class="btn primary" type="submit" id="loginBtn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+  <header class="top">
+    <div class="wrap top-row">
+      <h1>LN AUX API · Painel</h1>
+      <div class="top-actions">
+        <a class="btn" href="/docs" style="text-decoration:none">Documentação</a>
+        <button class="btn" id="logoutBtn" type="button">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="metrics">
+      <div class="card metric"><div class="n" id="mTotal">–</div><div class="l">Keys geradas</div></div>
+      <div class="card metric ok"><div class="n" id="mActive">–</div><div class="l">Ativas</div></div>
+      <div class="card metric warn"><div class="n" id="mPaused">–</div><div class="l">Pausadas</div></div>
+      <div class="card metric err"><div class="n" id="mExpired">–</div><div class="l">Expiradas</div></div>
+      <div class="card metric"><div class="n" id="mPending">–</div><div class="l">Pendentes</div></div>
+    </div>
+
+    <div class="card gen">
+      <h2>Gerar keys</h2>
+      <div class="gen-row">
+        <div><label for="genQty">Quantidade (1 a 500)</label><input id="genQty" type="number" min="1" max="500" value="10"></div>
+        <div>
+          <label for="genDur">Duração</label>
+          <select id="genDur">
+            <option value="1h">1 hora</option><option value="1d">1 dia</option><option value="7d">7 dias</option>
+            <option value="30d" selected>30 dias</option><option value="90d">90 dias</option>
+            <option value="365d">365 dias</option><option value="lifetime">Eterna (lifetime)</option>
+          </select>
+        </div>
+        <button class="btn primary" id="genBtn" type="button">Gerar</button>
+      </div>
+      <div id="genResult" hidden>
+        <textarea id="genOut" readonly></textarea>
+        <div class="gen-out-bar">
+          <button class="btn" id="copyKeys" type="button">Copiar lista</button>
+          <span class="muted" id="genCount"></span>
+        </div>
+      </div>
+      <p class="muted" style="margin:12px 0 0;font-size:.82rem">O tempo só começa a contar quando o cliente usa a key pela primeira vez.</p>
+    </div>
+
+    <div class="card list">
+      <div class="list-head">
+        <h2>Keys</h2>
+        <div class="filters">
+          <input id="search" type="search" placeholder="Buscar key ou HWID" aria-label="Buscar key ou HWID">
+          <select id="statusFilter" aria-label="Filtrar por status">
+            <option value="">Todos os status</option><option value="pending">Pendentes</option>
+            <option value="active">Ativas</option><option value="paused">Pausadas</option><option value="expired">Expiradas</option>
+          </select>
+          <button class="btn" id="refreshBtn" type="button">Atualizar</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Key</th><th>Duração</th><th>HWID vinculado</th><th>Status</th><th>Expira em</th><th>Ações</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="muted" id="totalInfo" style="margin:10px 0 0;font-size:.82rem"></p>
+    </div>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var token = null;
+  try { token = sessionStorage.getItem('ln_token'); } catch (e) {}
+
+  // Escapa texto antes de inserir em HTML (o HWID vem do cliente e não é confiável).
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var MSG = {
+    invalid_credentials: 'Usuário ou senha incorretos.',
+    rate_limited: 'Muitas tentativas. Aguarde um pouco e tente de novo.',
+    bad_request: 'Dados inválidos. Revise os campos.',
+    invalid_key: 'Key não encontrada.',
+    already_lifetime: 'Keys eternas não precisam de renovação.',
+    unauthorized: 'Sessão expirada. Entre novamente.',
+    server_error: 'Erro no servidor. Tente novamente.'
+  };
+  var STATUS_PT = { pending: 'Pendente', active: 'Ativa', paused: 'Pausada', expired: 'Expirada' };
+
+  var toastTimer;
+  function toast(msg, isErr) {
+    var t = $('#toast');
+    t.textContent = msg; t.className = isErr ? 'err' : ''; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 3200);
+  }
+
+  function api(path, method, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    return fetch('/api/admin' + path, {
+      method: method || 'GET', headers: headers, body: body ? JSON.stringify(body) : undefined
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (res.status === 401 && path !== '/login') { logout(); throw new Error(MSG.unauthorized); }
+        if (!res.ok) throw new Error(MSG[data.reason] || 'Erro inesperado.');
+        return data;
+      });
+    });
+  }
+
+  function show(logged) { $('#login').hidden = logged; $('#app').hidden = !logged; }
+  function logout() {
+    token = null;
+    try { sessionStorage.removeItem('ln_token'); } catch (e) {}
+    show(false);
+  }
+
+  // ---- Login ----
+  $('#loginForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var btn = $('#loginBtn'); btn.disabled = true; $('#loginErr').textContent = '';
+    api('/login', 'POST', { user: $('#user').value, pass: $('#pass').value })
+      .then(function (d) {
+        token = d.token;
+        try { sessionStorage.setItem('ln_token', token); } catch (e) {}
+        $('#pass').value = '';
+        show(true); carregarTudo();
+      })
+      .catch(function (e) { $('#loginErr').textContent = e.message; })
+      .then(function () { btn.disabled = false; });
+  });
+  $('#logoutBtn').addEventListener('click', logout);
+
+  // ---- Métricas ----
+  function carregarStats() {
+    return api('/stats').then(function (s) {
+      $('#mTotal').textContent = s.total; $('#mActive').textContent = s.active;
+      $('#mPaused').textContent = s.paused; $('#mExpired').textContent = s.expired;
+      $('#mPending').textContent = s.pending;
+    });
+  }
+
+  // ---- Tabela ----
+  function fmtRestante(seg) {
+    var d = Math.floor(seg / 86400), h = Math.floor((seg % 86400) / 3600), m = Math.floor((seg % 3600) / 60);
+    if (d > 0) return d + 'd ' + h + 'h';
+    if (h > 0) return h + 'h ' + m + 'min';
+    return m + 'min';
+  }
+  function fmtExpira(k) {
+    if (!k.is_active) return '<span class="muted">Começa no 1º uso</span>';
+    if (k.expires_at === null) return 'Eterna';
+    var data = new Date(k.expires_at).toLocaleString('pt-BR');
+    if (k.status === 'expired') return esc(data) + ' <span class="muted">(expirou)</span>';
+    return esc(data) + ' <span class="muted">(' + fmtRestante(k.seconds_left) + ')</span>';
+  }
+
+  function renderLinhas(keys) {
+    var tbody = $('#rows');
+    if (!keys.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhuma key encontrada.</td></tr>'; return; }
+    tbody.innerHTML = keys.map(function (k) {
+      var kk = esc(k.key);
+      return '<tr>' +
+        '<td class="mono">' + kk + '</td>' +
+        '<td>' + esc(k.duration === 'lifetime' ? 'Eterna' : k.duration) + '</td>' +
+        '<td class="mono hwid" title="' + esc(k.hwid || '') + '">' + (k.hwid ? esc(k.hwid) : '<span class="muted">–</span>') + '</td>' +
+        '<td><span class="pill ' + esc(k.status) + '">' + esc(STATUS_PT[k.status]) + '</span></td>' +
+        '<td>' + fmtExpira(k) + '</td>' +
+        '<td><div class="actions">' +
+          '<button class="btn small" data-act="copy" data-key="' + kk + '">Copiar</button>' +
+          '<button class="btn small" data-act="reset" data-key="' + kk + '"' + (k.hwid ? '' : ' disabled') + '>Reset HWID</button>' +
+          '<button class="btn small" data-act="pause" data-key="' + kk + '">' + (k.is_paused ? 'Despausar' : 'Pausar') + '</button>' +
+          '<button class="btn small" data-act="extend" data-key="' + kk + '"' + (k.duration === 'lifetime' ? ' disabled' : '') + '>Estender</button>' +
+          '<button class="btn small danger" data-act="delete" data-key="' + kk + '">Deletar</button>' +
+        '</div></td></tr>';
+    }).join('');
+  }
+
+  function carregarKeys() {
+    var q = '?limit=500';
+    var st = $('#statusFilter').value, s = $('#search').value.trim();
+    if (st) q += '&status=' + encodeURIComponent(st);
+    if (s) q += '&search=' + encodeURIComponent(s);
+    return api('/keys' + q).then(function (d) {
+      renderLinhas(d.keys);
+      $('#totalInfo').textContent = d.total > d.keys.length
+        ? 'Mostrando ' + d.keys.length + ' de ' + d.total + ' keys. Use a busca para filtrar.'
+        : d.total + (d.total === 1 ? ' key' : ' keys');
+    });
+  }
+
+  function carregarTudo() {
+    return Promise.all([carregarStats(), carregarKeys()]).catch(function (e) { toast(e.message, true); });
+  }
+
+  // ---- Ações da tabela (delegação de eventos) ----
+  function copiar(texto, okMsg) {
+    var fim = function () { toast(okMsg); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(fim, function () { toast('Não foi possível copiar.', true); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = texto; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); fim(); } catch (e) { toast('Não foi possível copiar.', true); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  $('#rows').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-act]');
+    if (!btn || btn.disabled) return;
+    var key = btn.getAttribute('data-key'), act = btn.getAttribute('data-act');
+
+    if (act === 'copy') return copiar(key, 'Key copiada.');
+
+    var req;
+    if (act === 'reset') {
+      if (!confirm('Desvincular o HWID desta key? O tempo restante não será reiniciado.')) return;
+      req = api('/key/reset-hwid', 'POST', { key: key }).then(function () { toast('HWID desvinculado.'); });
+    } else if (act === 'pause') {
+      req = api('/key/toggle-pause', 'POST', { key: key }).then(function (d) { toast(d.is_paused ? 'Key pausada.' : 'Key despausada.'); });
+    } else if (act === 'extend') {
+      var dur = prompt('Quanto tempo adicionar? Ex.: 1h, 1d, 7d, 30d', '7d');
+      if (!dur) return;
+      req = api('/key/extend', 'POST', { key: key, duration: dur }).then(function () { toast('Tempo adicionado.'); });
+    } else if (act === 'delete') {
+      if (!confirm('Deletar esta key definitivamente?')) return;
+      req = api('/key/delete', 'POST', { key: key }).then(function () { toast('Key deletada.'); });
+    } else { return; }
+
+    req.then(carregarTudo).catch(function (e) { toast(e.message, true); });
+  });
+
+  // ---- Gerador ----
+  $('#genBtn').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    api('/keys/generate', 'POST', { quantity: Number($('#genQty').value), duration: $('#genDur').value })
+      .then(function (d) {
+        $('#genOut').value = d.keys.join('\n');
+        $('#genCount').textContent = d.keys.length + (d.keys.length === 1 ? ' key gerada' : ' keys geradas');
+        $('#genResult').hidden = false;
+        return carregarTudo();
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .then(function () { btn.disabled = false; });
+  });
+  $('#copyKeys').addEventListener('click', function () { copiar($('#genOut').value, 'Lista copiada.'); });
+
+  // ---- Filtros ----
+  var buscaTimer;
+  $('#search').addEventListener('input', function () {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(function () { carregarKeys().catch(function (e) { toast(e.message, true); }); }, 300);
+  });
+  $('#statusFilter').addEventListener('change', function () { carregarKeys().catch(function (e) { toast(e.message, true); }); });
+  $('#refreshBtn').addEventListener('click', carregarTudo);
+
+  // ---- Boot ----
+  if (token) { show(true); carregarTudo(); } else { show(false); }
+})();
+</script>
+</body>
+</html>
