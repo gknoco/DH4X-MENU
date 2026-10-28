@@ -1,22 +1,24 @@
-// Exige "Authorization: Bearer <jwt>" válido com role=admin.
+// 404 para rotas /api desconhecidas e tratador global de erros.
 import { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
 
-export function adminAuth(req: Request, res: Response, next: NextFunction): void {
-  const cabecalho = req.headers.authorization ?? '';
-  const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7).trim() : '';
+export function rotaNaoEncontrada(_req: Request, res: Response): void {
+  res.status(404).json({ valid: false, reason: 'not_found' });
+}
 
-  if (!token) {
-    res.status(401).json({ ok: false, reason: 'unauthorized' });
+interface ErroHttp extends Error {
+  status?: number;
+  statusCode?: number;
+  type?: string;
+}
+
+// O parâmetro `_next` precisa existir para o Express reconhecer este middleware como tratador de erros.
+export function tratarErros(err: ErroHttp, _req: Request, res: Response, _next: NextFunction): void {
+  // JSON malformado ou corpo grande demais (erros do body-parser) => requisição inválida.
+  if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large' || err.type === 'charset.unsupported') {
+    res.status(err.type === 'entity.too.large' ? 413 : 400).json({ valid: false, reason: 'bad_request' });
     return;
   }
 
-  try {
-    const payload = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] });
-    if (typeof payload === 'string' || payload.role !== 'admin') throw new Error('role inválida');
-    next();
-  } catch {
-    res.status(401).json({ ok: false, reason: 'unauthorized' });
-  }
+  console.error('[erro]', err);
+  res.status(500).json({ valid: false, reason: 'server_error' });
 }
